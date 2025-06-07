@@ -18,7 +18,7 @@ See [DEPLOYMENT_SETUP.md](DEPLOYMENT_SETUP.md) for detailed setup instructions.
 **Quick steps:**
 1. Fork this repository
 2. Set up Google Cloud project and service account
-3. Add secrets to GitHub repository (`GCP_PROJECT_ID`, `GCP_SA_KEY`, optional `COMPRESSION_RATIO`)
+3. Add secrets to GitHub repository (`GCP_PROJECT_ID`, `GCP_SA_KEY`) and optional variable (`COMPRESSION_RATIO`)
 4. Push to main branch - automatic deployment via GitHub Actions
 
 ## Local Development

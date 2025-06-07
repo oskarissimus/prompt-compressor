@@ -67,22 +67,10 @@ gcloud iam service-accounts keys create github-actions-key.json \
 
 ## GitHub Repository Setup
 
-### 1. Add Secrets
-
-You have two options for adding secrets:
-
-#### Option A: Repository Secrets (Simpler)
-Go to your GitHub repository → Settings → Secrets and variables → Actions → Repository secrets, then add these secrets:
-
-#### Option B: Environment Secrets (More Secure)
-1. Go to your GitHub repository → Settings → Environments
-2. Create a new environment called "prod" (or use existing)
-3. Add the secrets to that environment
-4. The workflow is already configured to use the "prod" environment
-
-Choose either option - both will work. Environment secrets provide better security as they can have additional protection rules.
+### 1. Add Secrets and Variables
 
 #### Required Secrets:
+Go to your GitHub repository → Settings → Secrets and variables → Actions → Repository secrets, then add these secrets:
 
 - **`GCP_PROJECT_ID`**: Your Google Cloud Project ID
   ```
@@ -108,11 +96,13 @@ Choose either option - both will work. Environment secrets provide better securi
   }
   ```
 
-#### Optional Secrets:
+#### Optional Environment Variables:
+Go to your GitHub repository → Settings → Secrets and variables → Actions → Variables, then add:
 
 - **`COMPRESSION_RATIO`**: Set to a value > 1.0 to enable compression (e.g., "2.0" for 50% compression)
   - Default: "1.0" (no compression)
   - Example: "2.0" removes ~50% of tokens, "3.0" removes ~67% of tokens
+  - **Note**: This is set as a repository variable (not a secret) since it's not sensitive information
 
 ### 2. Customize Deployment Settings
 
@@ -125,6 +115,20 @@ You can modify the deployment settings in `.github/workflows/deploy.yml`:
 - **Timeout**: Adjust `--timeout` flag (default: 3600s)
 - **Max Instances**: Adjust `--max-instances` flag (default: 10)
 - **Concurrency**: Adjust `--concurrency` flag (default: 100)
+
+## Alternative: Cloud Build Deployment
+
+If you prefer to use Google Cloud Build instead of GitHub Actions, you can deploy using the included `cloudbuild.yaml` file:
+
+```bash
+# Deploy with default compression ratio (1.0 - no compression)
+gcloud builds submit --config cloudbuild.yaml
+
+# Deploy with custom compression ratio
+gcloud builds submit --config cloudbuild.yaml --substitutions _COMPRESSION_RATIO=2.0
+```
+
+The Cloud Build configuration uses substitution variables, so you can override the compression ratio at build time without modifying the file.
 
 ## Testing the Setup
 

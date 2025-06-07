@@ -82,7 +82,7 @@ jobs:
           --max-instances=10 \
           --min-instances=0 \
           --concurrency=100 \
-          --set-env-vars="COMPRESSION_RATIO=${{ secrets.COMPRESSION_RATIO || '1.0' }}" \
+          --set-env-vars="COMPRESSION_RATIO=${{ vars.COMPRESSION_RATIO || '1.0' }}" \
           --port=8080 \
           --quiet
 
