@@ -22,6 +22,18 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Check required secrets
+      run: |
+        if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
+          echo "❌ GCP_PROJECT_ID secret is not set"
+          exit 1
+        fi
+        if [[ -z "${{ secrets.GCP_SA_KEY }}" ]]; then
+          echo "❌ GCP_SA_KEY secret is not set"
+          exit 1
+        fi
+        echo "✅ Required secrets are configured"
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -30,10 +42,18 @@ jobs:
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+    - name: Verify authentication
+      run: |
+        gcloud auth list
+        gcloud config list project
 
     - name: Install dependencies
       run: |

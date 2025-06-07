@@ -72,8 +72,20 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions,
 
 - **`GCP_SA_KEY`**: The entire contents of the `github-actions-key.json` file
   ```bash
-  # Copy the entire JSON content
+  # Copy the entire JSON content (should start with { and end with })
   cat github-actions-key.json
+  ```
+  
+  **Important**: Copy the entire JSON content including the curly braces. The JSON should look like:
+  ```json
+  {
+    "type": "service_account",
+    "project_id": "your-project-id",
+    "private_key_id": "...",
+    "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+    "client_email": "github-actions@your-project-id.iam.gserviceaccount.com",
+    ...
+  }
   ```
 
 #### Optional Secrets:
@@ -151,10 +163,29 @@ curl -X POST "https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/c
 
 ### Common Issues:
 
-1. **Permission Denied**: Ensure service account has all required roles
-2. **Function Not Found**: Check if the function name conflicts with existing functions
-3. **Timeout**: Increase timeout in workflow if deployment takes too long
-4. **Memory Issues**: Increase memory allocation for the function
+1. **Authentication Error**: 
+   - Ensure `GCP_SA_KEY` contains the complete JSON (including `{` and `}`)
+   - Verify the service account has all required permissions
+   - Check that secrets are set in the correct repository (not a fork)
+
+2. **Permission Denied**: Ensure service account has all required roles:
+   ```bash
+   # Re-run the permission commands from setup
+   gcloud projects add-iam-policy-binding $PROJECT_ID \
+       --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
+       --role="roles/cloudfunctions.admin"
+   ```
+
+3. **Function Not Found**: Check if the function name conflicts with existing functions
+
+4. **Timeout**: Increase timeout in workflow if deployment takes too long
+
+5. **Memory Issues**: Increase memory allocation for the function
+
+6. **Secrets Not Available**: 
+   - Secrets are not passed to workflows triggered from forks
+   - Ensure you're pushing to the main branch of your own repository
+   - Check that secret names match exactly (case-sensitive)
 
 ### View Logs:
 
