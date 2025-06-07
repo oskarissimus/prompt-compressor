@@ -13,6 +13,9 @@ This guide will help you set up automatic deployment to Google Cloud Functions w
 ### 1. Enable Required APIs
 
 ```bash
+# Enable Cloud Resource Manager API (required for project access)
+gcloud services enable cloudresourcemanager.googleapis.com
+
 # Enable Cloud Functions API
 gcloud services enable cloudfunctions.googleapis.com
 
@@ -21,6 +24,9 @@ gcloud services enable cloudbuild.googleapis.com
 
 # Enable Cloud Run API (for Gen2 functions)
 gcloud services enable run.googleapis.com
+
+# Enable Artifact Registry API (for storing function artifacts)
+gcloud services enable artifactregistry.googleapis.com
 ```
 
 ### 2. Create a Service Account
@@ -179,7 +185,17 @@ curl -X POST "https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/c
    - Verify the service account has all required permissions
    - Check that secrets are set in the correct repository (not a fork)
 
-2. **Permission Denied**: Ensure service account has all required roles:
+2. **API Not Enabled Error**: 
+   ```
+   Cloud Resource Manager API has not been used in project... before or it is disabled
+   ```
+   **Solution**: Enable the missing API:
+   ```bash
+   gcloud services enable cloudresourcemanager.googleapis.com
+   # Wait a few minutes for propagation, then retry deployment
+   ```
+
+3. **Permission Denied**: Ensure service account has all required roles:
    ```bash
    # Re-run the permission commands from setup
    gcloud projects add-iam-policy-binding $PROJECT_ID \
@@ -187,13 +203,13 @@ curl -X POST "https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/c
        --role="roles/cloudfunctions.admin"
    ```
 
-3. **Function Not Found**: Check if the function name conflicts with existing functions
+4. **Function Not Found**: Check if the function name conflicts with existing functions
 
-4. **Timeout**: Increase timeout in workflow if deployment takes too long
+5. **Timeout**: Increase timeout in workflow if deployment takes too long
 
-5. **Memory Issues**: Increase memory allocation for the function
+6. **Memory Issues**: Increase memory allocation for the function
 
-6. **Secrets Not Available**: 
+7. **Secrets Not Available**: 
    - Secrets are not passed to workflows triggered from forks
    - Ensure you're pushing to the main branch of your own repository
    - Check that secret names match exactly (case-sensitive)
