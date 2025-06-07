@@ -31,26 +31,26 @@ compression.log
 .git/
 .gitignore
 
-# Docker
-docker-compose.yml
-Dockerfile
-.dockerignore
-
 # Local development files
 run.sh
-proxy.py
-
-# Dependencies lock file (use requirements.txt instead)
-uv.lock
+docker-compose.yml
 
 # Test files
 tests/
 *_test.py
 test_*.py
 
-# Documentation
+# Documentation (optional - remove these lines if you want to include docs)
 README.md
 docs/
+DEPLOYMENT_SETUP.md
 
 # CI/CD
-.github/ 
+.github/
+
+# Local service account key files (if any)
+*-key.json
+github-actions-key.json
+
+# Cloud Functions specific files (no longer needed)
+main.py 

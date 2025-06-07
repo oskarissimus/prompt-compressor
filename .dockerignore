@@ -1,0 +1,55 @@
+# Git files
+.git
+.gitignore
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+proxy_requests.log
+compression.log
+
+# Documentation
+README.md
+docs/
+DEPLOYMENT_SETUP.md
+
+# CI/CD files
+.github/
+
+# Docker files (except Dockerfile)
+docker-compose.yml
+.dockerignore
+
+# Local development files
+run.sh
+
+# Test files
+tests/
+*_test.py
+test_*.py
+
+# Service account keys
+*-key.json
+github-actions-key.json
+
+# Cloud Functions specific files
+main.py
+
+# Google Cloud ignore file
+.gcloudignore 

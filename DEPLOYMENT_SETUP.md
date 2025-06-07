@@ -1,6 +1,6 @@
 # Deployment Setup Guide
 
-This guide will help you set up automatic deployment to Google Cloud Functions when you push to the main branch.
+This guide will help you set up automatic deployment to Google Cloud Run when you push to the main branch.
 
 ## Prerequisites
 
@@ -16,16 +16,16 @@ This guide will help you set up automatic deployment to Google Cloud Functions w
 # Enable Cloud Resource Manager API (required for project access)
 gcloud services enable cloudresourcemanager.googleapis.com
 
-# Enable Cloud Functions API
-gcloud services enable cloudfunctions.googleapis.com
-
-# Enable Cloud Build API (for deployment)
-gcloud services enable cloudbuild.googleapis.com
-
-# Enable Cloud Run API (for Gen2 functions)
+# Enable Cloud Run API
 gcloud services enable run.googleapis.com
 
-# Enable Artifact Registry API (for storing function artifacts)
+# Enable Cloud Build API (for building Docker images)
+gcloud services enable cloudbuild.googleapis.com
+
+# Enable Container Registry API (for storing Docker images)
+gcloud services enable containerregistry.googleapis.com
+
+# Enable Artifact Registry API (alternative to Container Registry)
 gcloud services enable artifactregistry.googleapis.com
 ```
 
@@ -40,19 +40,22 @@ gcloud iam service-accounts create github-actions \
 # Get your project ID
 export PROJECT_ID=$(gcloud config get-value project)
 
-# Grant necessary permissions
-gcloud projects add-iam-policy-binding $PROJECT_ID \
-    --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
-    --role="roles/cloudfunctions.admin"
-
+# Grant necessary permissions for Cloud Run
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/run.admin"
 
+# Grant permissions for Cloud Build (to build Docker images)
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/cloudbuild.builds.builder"
 
+# Grant permissions for Container Registry (to push Docker images)
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
+    --role="roles/storage.admin"
+
+# Grant permissions to act as service account
 gcloud projects add-iam-policy-binding $PROJECT_ID \
     --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
     --role="roles/iam.serviceAccountUser"
@@ -115,25 +118,37 @@ Choose either option - both will work. Environment secrets provide better securi
 
 You can modify the deployment settings in `.github/workflows/deploy.yml`:
 
-- **Function Name**: Change `FUNCTION_NAME` (default: "openai-proxy")
+- **Service Name**: Change `SERVICE_NAME` (default: "openai-proxy")
 - **Region**: Change `REGION` (default: "us-central1")
-- **Memory**: Adjust `--memory` flag (default: 512MB)
-- **Timeout**: Adjust `--timeout` flag (default: 540s)
+- **Memory**: Adjust `--memory` flag (default: 1Gi)
+- **CPU**: Adjust `--cpu` flag (default: 1)
+- **Timeout**: Adjust `--timeout` flag (default: 3600s)
 - **Max Instances**: Adjust `--max-instances` flag (default: 10)
+- **Concurrency**: Adjust `--concurrency` flag (default: 100)
 
 ## Testing the Setup
 
 ### 1. Test Local Deployment (Optional)
 
+Using Docker:
+```bash
+# Build the Docker image
+docker build -t openai-proxy .
+
+# Run locally
+docker run -p 8080:8080 -e COMPRESSION_RATIO=1.0 openai-proxy
+
+# Test health endpoint
+curl http://localhost:8080/health
+```
+
+Using Python directly:
 ```bash
 # Install dependencies (using uv)
 uv install
 
-# Or generate requirements.txt if needed
-uv export --format requirements-txt --output-file requirements.txt --no-dev
-
-# Test locally
-python main.py
+# Run locally
+python proxy.py
 
 # Test health endpoint
 curl http://localhost:8000/health
@@ -145,7 +160,7 @@ Once you've set up the secrets, simply push to the main branch:
 
 ```bash
 git add .
-git commit -m "Setup Cloud Functions deployment"
+git commit -m "Setup Cloud Run deployment"
 git push origin main
 ```
 
@@ -153,24 +168,24 @@ git push origin main
 
 1. Go to your GitHub repository → Actions tab
 2. Watch the deployment workflow run
-3. If successful, the workflow will output the function URL
+3. If successful, the workflow will output the service URL
 
-### 4. Test Deployed Function
+### 4. Test Deployed Service
 
 ```bash
-# Replace with your actual function URL
-curl https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/health
+# Replace with your actual service URL
+curl https://openai-proxy-HASH-uc.a.run.app/health
 ```
 
 ## Usage
 
-Once deployed, you can use the Cloud Function URL as a drop-in replacement for the OpenAI API:
+Once deployed, you can use the Cloud Run service URL as a drop-in replacement for the OpenAI API:
 
 ```bash
 # Instead of https://api.openai.com/v1/chat/completions
-# Use: https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/chat/completions
+# Use: https://openai-proxy-HASH-uc.a.run.app/chat/completions
 
-curl -X POST "https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/chat/completions" \
+curl -X POST "https://openai-proxy-HASH-uc.a.run.app/chat/completions" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_OPENAI_API_KEY" \
   -d '{
@@ -178,6 +193,18 @@ curl -X POST "https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/c
     "messages": [{"role": "user", "content": "Hello!"}]
   }'
 ```
+
+## Cloud Run Advantages
+
+Compared to Cloud Functions, Cloud Run offers several benefits for this use case:
+
+1. **Better FastAPI Support**: Native ASGI support without function framework overhead
+2. **Longer Request Timeouts**: Up to 3600 seconds (1 hour) vs 540 seconds for functions
+3. **More Memory**: Up to 32GB vs 8GB for functions
+4. **Better Concurrency**: Handle more concurrent requests per instance
+5. **Persistent Connections**: Can maintain connection pools for better performance
+6. **Custom Domains**: Easier to set up custom domains
+7. **Traffic Splitting**: Built-in traffic splitting for gradual rollouts
 
 ## Troubleshooting
 
@@ -198,56 +225,65 @@ curl -X POST "https://YOUR-REGION-YOUR-PROJECT.cloudfunctions.net/openai-proxy/c
    # Wait a few minutes for propagation, then retry deployment
    ```
 
-3. **Permission Denied**: Ensure service account has all required roles:
-   ```bash
-   # Re-run the permission commands from setup
-   gcloud projects add-iam-policy-binding $PROJECT_ID \
-       --member="serviceAccount:github-actions@$PROJECT_ID.iam.gserviceaccount.com" \
-       --role="roles/cloudfunctions.admin"
-   ```
+3. **Docker Build Issues**:
+   - Ensure Dockerfile is properly formatted
+   - Check that all dependencies are properly specified in pyproject.toml
+   - Verify that the base image is accessible
 
-4. **Function Not Found**: Check if the function name conflicts with existing functions
+4. **Service Not Starting**:
+   - Check Cloud Run logs: `gcloud run services logs read openai-proxy --region=us-central1`
+   - Ensure the service is listening on the correct port (8080)
+   - Verify environment variables are set correctly
 
-5. **Timeout**: Increase timeout in workflow if deployment takes too long
+5. **Request Timeout**:
+   - Cloud Run has a default timeout of 300 seconds
+   - Increase timeout in the deployment command if needed
+   - Check if the upstream OpenAI API is responding slowly
 
-6. **Memory Issues**: Increase memory allocation for the function
+### Monitoring and Logs
 
-7. **Secrets Not Available**: 
-   - Secrets are not passed to workflows triggered from forks
-   - Ensure you're pushing to the main branch of your own repository
-   - Check that secret names match exactly (case-sensitive)
-
-### View Logs:
-
+View logs:
 ```bash
-# View function logs
-gcloud functions logs read openai-proxy --region=us-central1
+# View recent logs
+gcloud run services logs read openai-proxy --region=us-central1
 
-# View deployment logs
-gcloud builds log --region=us-central1
+# Follow logs in real-time
+gcloud run services logs tail openai-proxy --region=us-central1
 ```
 
-### Manual Deployment:
+Monitor performance in the Google Cloud Console:
+- Go to Cloud Run → Services → openai-proxy
+- Check the Metrics tab for request volume, latency, and errors
+- Use the Logs tab to debug issues
 
-If automatic deployment fails, you can deploy manually:
+## Cost Optimization
 
-```bash
-gcloud functions deploy openai-proxy \
-  --gen2 \
-  --runtime=python311 \
-  --region=us-central1 \
-  --source=. \
-  --entry-point=main \
-  --trigger=http \
-  --allow-unauthenticated \
-  --memory=512MB \
-  --timeout=540s \
-  --set-env-vars="COMPRESSION_RATIO=1.0"
-```
+Cloud Run pricing is based on:
+- **CPU and Memory**: Allocated resources
+- **Request Count**: Number of requests processed
+- **Request Duration**: Time spent processing requests
 
-## Security Notes
+To optimize costs:
+1. **Right-size resources**: Start with 1 CPU and 1GB memory, adjust based on usage
+2. **Set minimum instances to 0**: Scales to zero when not in use
+3. **Monitor cold starts**: Consider setting min-instances to 1 if cold starts are problematic
+4. **Use request timeouts**: Prevent runaway requests from consuming resources
 
-- The function is deployed with `--allow-unauthenticated` for ease of use
-- Consider adding authentication for production use
-- Monitor usage to avoid unexpected costs
-- Rotate service account keys regularly 
+## Security Considerations
+
+1. **Service Account Permissions**: Use the principle of least privilege
+2. **Network Security**: Consider using VPC connectors for private networks
+3. **Authentication**: The service is currently public; consider adding authentication if needed
+4. **Secrets Management**: Store sensitive configuration in Google Secret Manager
+5. **Audit Logging**: Enable Cloud Audit Logs for compliance
+
+## Scaling Configuration
+
+The current configuration allows:
+- **Min instances**: 0 (scales to zero)
+- **Max instances**: 10 (prevents runaway scaling)
+- **Concurrency**: 100 requests per instance
+- **Memory**: 1GB per instance
+- **CPU**: 1 vCPU per instance
+
+Adjust these values in the deployment workflow based on your expected traffic patterns. 
