@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-Google Cloud Functions entry point for OpenAI proxy
-Uses the tried and tested logic from proxy.py
+Simple Google Cloud Functions proxy to OpenAI API with compression
 """
 
 import os
 import json
 import logging
 import random
+import requests
 from typing import Any, Dict, Optional
 from datetime import datetime
-from fastapi import FastAPI, Request, Response, HTTPException
-from fastapi.responses import StreamingResponse
-import httpx
 import tiktoken
 import functions_framework
 
-# Configure logging for Cloud Functions
+# Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -124,31 +121,26 @@ def compress_chat_messages(messages: list, compression_ratio: float) -> list:
     
     return compressed_messages
 
-# Global HTTP client for reuse
-http_client = httpx.AsyncClient(timeout=300.0)
-
-# Create FastAPI app
-app = FastAPI(title="OpenAI Proxy", description="Transparent proxy to OpenAI API")
-
-@app.get("/health")
-async def health_check():
-    """Simple health check endpoint"""
-    return {"status": "healthy", "proxy_target": OPENAI_BASE_URL}
-
-@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"])
-async def proxy_request(request: Request, path: str):
-    """
-    Transparent proxy endpoint that forwards all requests to OpenAI API
-    """
+@functions_framework.http
+def main(request):
+    """Google Cloud Functions entry point"""
     try:
+        # Handle health check
+        if request.path == '/health':
+            return {"status": "healthy", "proxy_target": OPENAI_BASE_URL}
+        
+        # Get the path, removing leading slash if it exists
+        path = request.path
+        if path.startswith('/'):
+            path = path[1:]
+        
         # Build target URL
         target_url = f"{OPENAI_BASE_URL}/{path}"
         
-        # Get request body if present
+        # Get request body
         body = None
-        original_body_data = None
         if request.method in ["POST", "PUT", "PATCH"]:
-            body = await request.body()
+            body = request.get_data()
             
             # Apply compression for chat completions
             if body and path.endswith("chat/completions") and COMPRESSION_RATIO > 1.0:
@@ -156,7 +148,6 @@ async def proxy_request(request: Request, path: str):
                     body_str = body.decode('utf-8')
                     body_data = json.loads(body_str)
                     if "messages" in body_data and isinstance(body_data["messages"], list):
-                        original_body_data = body_data.copy()
                         compression_logger.info(f"NEW CHAT COMPLETION REQUEST - Timestamp: {datetime.now().isoformat()}")
                         compression_logger.info(f"Target URL: {target_url}")
                         compression_logger.info(f"Compression ratio: {COMPRESSION_RATIO}")
@@ -172,145 +163,86 @@ async def proxy_request(request: Request, path: str):
                     logger.warning(f"Failed to decode body for compression: {e}")
                 except Exception as e:
                     logger.warning(f"Failed to apply compression: {e}")
-                    import traceback
-                    logger.warning(f"Compression error traceback: {traceback.format_exc()}")
         
         # Prepare headers
         headers = dict(request.headers)
         
-        # Remove host header to avoid conflicts
+        # Remove problematic headers
         headers.pop("host", None)
+        headers.pop("content-length", None)
         
-        # Update Content-Length if body was modified
-        if body is not None:
-            headers["content-length"] = str(len(body))
-        
-        # Log incoming request
+        # Log request
         logger.info(f"Forwarding {request.method} {target_url}")
         
-        response = await http_client.request(
+        # Make the request to OpenAI
+        response = requests.request(
             method=request.method,
             url=target_url,
             headers=headers,
-            params=request.query_params,
-            content=body
+            params=request.args,
+            data=body,
+            stream=True,
+            timeout=300
         )
         
-        # Handle streaming responses (like chat completions with stream=True)
+        # Handle streaming responses
         if response.headers.get("content-type", "").startswith("text/event-stream"):
-            async def stream_response():
-                async for chunk in response.aiter_bytes():
-                    yield chunk
+            def generate():
+                try:
+                    for chunk in response.iter_content(chunk_size=1024):
+                        if chunk:
+                            yield chunk
+                except Exception as e:
+                    logger.error(f"Streaming error: {e}")
+                    yield f"data: {json.dumps({'error': 'Streaming error'})}\n\n".encode()
             
-            return StreamingResponse(
-                stream_response(),
-                status_code=response.status_code,
+            from flask import Response
+            return Response(
+                generate(),
+                status=response.status_code,
                 headers=dict(response.headers),
-                media_type="text/event-stream"
+                mimetype="text/event-stream"
             )
         
         # Handle regular responses
+        from flask import Response
         return Response(
-            content=response.content,
-            status_code=response.status_code,
+            response.content,
+            status=response.status_code,
             headers=dict(response.headers)
         )
         
-    except httpx.RequestError as e:
+    except requests.RequestException as e:
         logger.error(f"Request error: {e}")
-        raise HTTPException(status_code=502, detail="Bad Gateway - Failed to connect to OpenAI API")
+        from flask import Response
+        return Response(
+            json.dumps({"error": "Bad Gateway - Failed to connect to OpenAI API"}),
+            status=502,
+            headers={"Content-Type": "application/json"}
+        )
     
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
-
-# Google Cloud Functions entry point using functions-framework
-@functions_framework.http
-def main(request):
-    """Cloud Functions entry point that delegates to FastAPI"""
-    from fastapi import FastAPI
-    from fastapi.middleware.wsgi import WSGIMiddleware
-    from werkzeug.wrappers import Request as WerkzeugRequest, Response as WerkzeugResponse
-    
-    # Simple wrapper to handle the request with FastAPI
-    try:
-        # For Cloud Functions, we'll use a simple approach
-        # Let the FastAPI app handle the request directly
-        import asyncio
-        from starlette.applications import Starlette
-        from starlette.responses import Response as StarletteResponse
-        from starlette.requests import Request as StarletteRequest
-        
-        # Create a simple event loop and run the FastAPI app
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        
-        try:
-            # Convert Flask request to format FastAPI can handle
-            method = request.method
-            path = request.path if request.path.startswith('/') else '/' + request.path
-            query_string = request.query_string.decode() if request.query_string else ''
-            headers = dict(request.headers)
-            body = request.get_data() if request.method in ['POST', 'PUT', 'PATCH'] else b''
-            
-            # Create ASGI scope
-            scope = {
-                'type': 'http',
-                'method': method,
-                'path': path,
-                'query_string': query_string.encode(),
-                'headers': [(k.lower().encode(), v.encode()) for k, v in headers.items()],
-            }
-            
-            # Handle the request
-            response_data = {'status': 200, 'headers': [], 'body': b''}
-            
-            async def receive():
-                return {
-                    'type': 'http.request',
-                    'body': body,
-                    'more_body': False,
-                }
-            
-            async def send(message):
-                if message['type'] == 'http.response.start':
-                    response_data['status'] = message['status']
-                    response_data['headers'] = message.get('headers', [])
-                elif message['type'] == 'http.response.body':
-                    response_data['body'] += message.get('body', b'')
-            
-            # Run the FastAPI app
-            loop.run_until_complete(app(scope, receive, send))
-            
-            # Convert headers back to dict
-            headers_dict = {}
-            for header_tuple in response_data['headers']:
-                key = header_tuple[0].decode() if isinstance(header_tuple[0], bytes) else header_tuple[0]
-                value = header_tuple[1].decode() if isinstance(header_tuple[1], bytes) else header_tuple[1]
-                headers_dict[key] = value
-            
-            # Return Flask response
-            from flask import Response
-            return Response(
-                response=response_data['body'],
-                status=response_data['status'],
-                headers=headers_dict
-            )
-            
-        finally:
-            loop.close()
-            
-    except Exception as e:
-        logger.error(f"Cloud Functions error: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         from flask import Response
         return Response(
-            response=json.dumps({"error": "Internal Server Error"}),
+            json.dumps({"error": "Internal Server Error"}),
             status=500,
             headers={"Content-Type": "application/json"}
         )
 
 if __name__ == "__main__":
-    import uvicorn
+    # For local testing
+    from flask import Flask
+    app = Flask(__name__)
+    
+    @app.route('/', defaults={'path': ''}, methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+    @app.route('/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+    def proxy(path):
+        from flask import request
+        return main(request)
+    
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
     
@@ -321,4 +253,4 @@ if __name__ == "__main__":
     else:
         logger.info("Compression disabled")
     
-    uvicorn.run(app, host=host, port=port) 
+    app.run(host=host, port=port, debug=False) 
