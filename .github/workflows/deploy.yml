@@ -25,15 +25,18 @@ jobs:
 
     - name: Check required secrets
       run: |
-        if [[ -z "${{ secrets.GCP_PROJECT_ID }}" ]]; then
+        if [ -z "$GCP_PROJECT_ID" ]; then
           echo "❌ GCP_PROJECT_ID secret is not set"
           exit 1
         fi
-        if [[ -z "${{ secrets.GCP_SA_KEY }}" ]]; then
-          echo "❌ GCP_SA_KEY secret is not set"
+        if [ -z "$GCP_SA_KEY" ]; then
+          echo "❌ GCP_SA_KEY secret is not set"  
           exit 1
         fi
         echo "✅ Required secrets are configured"
+      env:
+        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
 
     - name: Set up Python
       uses: actions/setup-python@v4
