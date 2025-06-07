@@ -207,6 +207,10 @@ async def proxy_request(request: Request, path: str):
         # Remove host header to avoid conflicts
         headers.pop("host", None)
         
+        # Update Content-Length if body was modified
+        if body is not None:
+            headers["content-length"] = str(len(body))
+        
         # Log incoming request
         request_data = {
             "timestamp": datetime.now().isoformat(),
