@@ -1,0 +1,57 @@
+# This file specifies files that are *not* uploaded to Google Cloud
+# using gcloud. It follows the same syntax as .gitignore, with the addition of
+# "#!include" directives (which insert the entries of the given .gitignore-style
+# file at that point).
+
+#!include:.gitignore
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Log files
+*.log
+proxy_requests.log
+compression.log
+
+# Git
+.git/
+.gitignore
+
+# Docker
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Local development files
+run.sh
+proxy.py
+
+# Dependencies lock file (use requirements.txt instead)
+uv.lock
+pyproject.toml
+
+# Test files
+tests/
+*_test.py
+test_*.py
+
+# Documentation
+README.md
+docs/
+
+# CI/CD
+.github/ 

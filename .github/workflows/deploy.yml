@@ -1,0 +1,68 @@
+name: Deploy to Google Cloud Functions
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  FUNCTION_NAME: openai-proxy
+  REGION: us-central1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Deploy to Cloud Functions
+      run: |
+        gcloud functions deploy ${{ env.FUNCTION_NAME }} \
+          --gen2 \
+          --runtime=python311 \
+          --region=${{ env.REGION }} \
+          --source=. \
+          --entry-point=main \
+          --trigger=http \
+          --allow-unauthenticated \
+          --memory=512MB \
+          --timeout=540s \
+          --max-instances=10 \
+          --set-env-vars="COMPRESSION_RATIO=${{ secrets.COMPRESSION_RATIO || '1.0' }}" \
+          --quiet
+
+    - name: Get function URL
+      run: |
+        FUNCTION_URL=$(gcloud functions describe ${{ env.FUNCTION_NAME }} --region=${{ env.REGION }} --format="value(serviceConfig.uri)")
+        echo "Function deployed at: $FUNCTION_URL"
+        echo "FUNCTION_URL=$FUNCTION_URL" >> $GITHUB_ENV
+
+    - name: Test deployment
+      run: |
+        curl -f "${{ env.FUNCTION_URL }}/health" || exit 1
+        echo "Health check passed!" 
