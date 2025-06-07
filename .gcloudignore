@@ -42,7 +42,6 @@ proxy.py
 
 # Dependencies lock file (use requirements.txt instead)
 uv.lock
-pyproject.toml
 
 # Test files
 tests/
