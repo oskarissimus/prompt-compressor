@@ -43,6 +43,17 @@ jobs:
       with:
         python-version: '3.11'
 
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Generate requirements.txt from uv
+      run: |
+        uv export --format requirements-txt --output-file requirements.txt --no-dev
+        echo "Generated requirements.txt:"
+        cat requirements.txt
+
     - name: Authenticate to Google Cloud
       uses: google-github-actions/auth@v2
       with:

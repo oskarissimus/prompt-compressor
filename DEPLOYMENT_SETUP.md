@@ -126,8 +126,11 @@ You can modify the deployment settings in `.github/workflows/deploy.yml`:
 ### 1. Test Local Deployment (Optional)
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (using uv)
+uv install
+
+# Or generate requirements.txt if needed
+uv export --format requirements-txt --output-file requirements.txt --no-dev
 
 # Test locally
 python main.py
