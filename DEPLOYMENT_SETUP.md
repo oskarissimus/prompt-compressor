@@ -58,9 +58,20 @@ gcloud iam service-accounts keys create github-actions-key.json \
 
 ## GitHub Repository Setup
 
-### 1. Add Repository Secrets
+### 1. Add Secrets
 
-Go to your GitHub repository → Settings → Secrets and variables → Actions, then add these secrets:
+You have two options for adding secrets:
+
+#### Option A: Repository Secrets (Simpler)
+Go to your GitHub repository → Settings → Secrets and variables → Actions → Repository secrets, then add these secrets:
+
+#### Option B: Environment Secrets (More Secure)
+1. Go to your GitHub repository → Settings → Environments
+2. Create a new environment called "prod" (or use existing)
+3. Add the secrets to that environment
+4. The workflow is already configured to use the "prod" environment
+
+Choose either option - both will work. Environment secrets provide better security as they can have additional protection rules.
 
 #### Required Secrets:
 
