@@ -224,15 +224,82 @@ async def proxy_request(request: Request, path: str):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # Google Cloud Functions entry point
-from mangum import Mangum
-
-# Create the handler for Cloud Functions
-handler = Mangum(app, lifespan="off")
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 @functions_framework.http
 def main(request):
     """Cloud Functions entry point"""
-    return handler(request, {})
+    # Convert Flask request to ASGI format
+    import json
+    from flask import request as flask_request
+    
+    # Get request details
+    method = request.method
+    path = request.path
+    query_string = request.query_string.decode()
+    headers = dict(request.headers)
+    
+    # Get body for POST/PUT/PATCH requests
+    body = b""
+    if method in ["POST", "PUT", "PATCH"]:
+        body = request.get_data()
+    
+    # Create ASGI scope
+    scope = {
+        'type': 'http',
+        'method': method,
+        'path': path,
+        'query_string': query_string.encode(),
+        'headers': [(k.lower().encode(), v.encode()) for k, v in headers.items()],
+    }
+    
+    # Handle the request with FastAPI
+    async def run_asgi():
+        # Create receive callable
+        async def receive():
+            return {
+                'type': 'http.request',
+                'body': body,
+                'more_body': False,
+            }
+        
+        # Create send callable and capture response
+        response_data = {'status': 200, 'headers': [], 'body': b''}
+        
+        async def send(message):
+            if message['type'] == 'http.response.start':
+                response_data['status'] = message['status']
+                response_data['headers'] = message.get('headers', [])
+            elif message['type'] == 'http.response.body':
+                response_data['body'] += message.get('body', b'')
+        
+        # Call FastAPI app
+        await app(scope, receive, send)
+        return response_data
+    
+    # Run the async function
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        response_data = loop.run_until_complete(run_asgi())
+    finally:
+        loop.close()
+    
+    # Convert headers back to dict
+    headers_dict = {}
+    for header_tuple in response_data['headers']:
+        key = header_tuple[0].decode() if isinstance(header_tuple[0], bytes) else header_tuple[0]
+        value = header_tuple[1].decode() if isinstance(header_tuple[1], bytes) else header_tuple[1]
+        headers_dict[key] = value
+    
+    # Return Flask response
+    from flask import Response
+    return Response(
+        response=response_data['body'],
+        status=response_data['status'],
+        headers=headers_dict
+    )
 
 if __name__ == "__main__":
     import uvicorn
