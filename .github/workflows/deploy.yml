@@ -50,7 +50,7 @@ jobs:
 
     - name: Generate requirements.txt from uv
       run: |
-        uv export --format requirements-txt --output-file requirements.txt --no-dev
+        uv export --format requirements-txt --output-file requirements.txt --no-dev --no-hashes
         echo "Generated requirements.txt:"
         cat requirements.txt
 

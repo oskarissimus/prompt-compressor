@@ -142,17 +142,24 @@ def compress_chat_messages(messages: list, compression_ratio: float) -> list:
     
     return compressed_messages
 
-# Create HTTP client for forwarding requests
-client = httpx.AsyncClient(timeout=300.0)
+# Global HTTP client variable
+client = None
 
 from contextlib import asynccontextmanager
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown events"""
+    global client
+    # Startup
+    client = httpx.AsyncClient(timeout=300.0)
     yield
     # Shutdown
-    await client.aclose()
+    if client and not client.is_closed:
+        try:
+            await client.aclose()
+        except Exception as e:
+            logger.warning(f"Error closing HTTP client: {e}")
 
 app = FastAPI(title="OpenAI Proxy", description="Transparent proxy to OpenAI API", lifespan=lifespan)
 
@@ -234,6 +241,11 @@ async def proxy_request(request: Request, path: str):
         # Forward the request
         logger.info(f"Forwarding {request.method} {target_url}")
         
+        # Check if client is available and not closed
+        if client is None or client.is_closed:
+            logger.error("HTTP client is not available or closed")
+            raise HTTPException(status_code=503, detail="Service Unavailable - Proxy is shutting down")
+        
         response = await client.request(
             method=request.method,
             url=target_url,
@@ -297,8 +309,20 @@ async def proxy_request(request: Request, path: str):
         logger.error(f"Request error: {e}")
         raise HTTPException(status_code=502, detail="Bad Gateway - Failed to connect to OpenAI API")
     
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            logger.error(f"Event loop closed during request: {e}")
+            raise HTTPException(status_code=503, detail="Service Unavailable - Server is shutting down")
+        else:
+            logger.error(f"Runtime error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
+    
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
+        # Check if it's an event loop related error
+        if "event loop" in str(e).lower() or "closed" in str(e).lower():
+            logger.error("Detected event loop closure error")
+            raise HTTPException(status_code=503, detail="Service Unavailable - Server is shutting down")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 if __name__ == "__main__":
