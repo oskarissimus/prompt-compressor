@@ -16,34 +16,37 @@ import httpx
 import uvicorn
 import tiktoken
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging for Cloud Run (stdout/stderr)
+import sys
 
-# Configure file logging for requests/responses
-file_handler = logging.FileHandler('proxy_requests.log')
-file_handler.setLevel(logging.INFO)
-file_formatter = logging.Formatter('%(asctime)s - %(message)s')
-file_handler.setFormatter(file_formatter)
+# Set up structured logging format for Google Cloud Logging
+log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+logging.basicConfig(
+    level=logging.INFO,
+    format=log_format,
+    stream=sys.stdout
+)
+logger = logging.getLogger(__name__)
 
 # Create separate logger for request/response logging
 request_logger = logging.getLogger('proxy_requests')
 request_logger.setLevel(logging.INFO)
-request_logger.addHandler(file_handler)
+request_handler = logging.StreamHandler(sys.stdout)
+request_handler.setLevel(logging.INFO)
+request_formatter = logging.Formatter('%(asctime)s - PROXY_REQUEST - %(message)s')
+request_handler.setFormatter(request_formatter)
+request_logger.addHandler(request_handler)
 request_logger.propagate = False
 
 # Create separate logger for compression logging
 compression_logger = logging.getLogger('compression')
 compression_logger.setLevel(logging.INFO)
+compression_handler = logging.StreamHandler(sys.stdout)
+compression_handler.setLevel(logging.INFO)
+compression_formatter = logging.Formatter('%(asctime)s - COMPRESSION - %(message)s')
+compression_handler.setFormatter(compression_formatter)
+compression_logger.addHandler(compression_handler)
 compression_logger.propagate = False
-
-# Only add handler if it doesn't already exist (prevents duplicate logs)
-if not compression_logger.handlers:
-    compression_file_handler = logging.FileHandler('compression.log')
-    compression_file_handler.setLevel(logging.INFO)
-    compression_formatter = logging.Formatter('%(asctime)s - %(message)s')
-    compression_file_handler.setFormatter(compression_formatter)
-    compression_logger.addHandler(compression_file_handler)
 
 # OpenAI API configuration
 OPENAI_BASE_URL = "https://api.openai.com/v1"
