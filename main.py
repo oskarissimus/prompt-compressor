@@ -123,9 +123,6 @@ def compress_chat_messages(messages: list, compression_ratio: float) -> list:
     
     return compressed_messages
 
-# Create HTTP client for forwarding requests
-client = httpx.AsyncClient(timeout=300.0)
-
 # Create FastAPI app
 app = FastAPI(title="OpenAI Proxy", description="Transparent proxy to OpenAI API")
 
@@ -139,89 +136,91 @@ async def proxy_request(request: Request, path: str):
     """
     Transparent proxy endpoint that forwards all requests to OpenAI API
     """
-    try:
-        # Build target URL
-        target_url = f"{OPENAI_BASE_URL}/{path}"
-        
-        # Get request body if present
-        body = None
-        original_body_data = None
-        if request.method in ["POST", "PUT", "PATCH"]:
-            body = await request.body()
+    # Create HTTP client for this request to avoid event loop issues in Cloud Functions
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        try:
+            # Build target URL
+            target_url = f"{OPENAI_BASE_URL}/{path}"
             
-            # Apply compression for chat completions
-            if body and path.endswith("chat/completions") and COMPRESSION_RATIO > 1.0:
-                try:
-                    body_str = body.decode('utf-8')
-                    body_data = json.loads(body_str)
-                    if "messages" in body_data and isinstance(body_data["messages"], list):
-                        original_body_data = body_data.copy()
-                        compression_logger.info(f"NEW CHAT COMPLETION REQUEST - Timestamp: {datetime.now().isoformat()}")
-                        compression_logger.info(f"Target URL: {target_url}")
-                        compression_logger.info(f"Compression ratio: {COMPRESSION_RATIO}")
-                        compression_logger.info("")
-                        
-                        body_data["messages"] = compress_chat_messages(body_data["messages"], COMPRESSION_RATIO)
-                        new_body_str = json.dumps(body_data, ensure_ascii=False)
-                        body = new_body_str.encode('utf-8')
-                        logger.info(f"Applied compression ratio {COMPRESSION_RATIO} to chat completion request")
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Failed to parse JSON for compression: {e}")
-                except UnicodeDecodeError as e:
-                    logger.warning(f"Failed to decode body for compression: {e}")
-                except Exception as e:
-                    logger.warning(f"Failed to apply compression: {e}")
-                    import traceback
-                    logger.warning(f"Compression error traceback: {traceback.format_exc()}")
-        
-        # Prepare headers
-        headers = dict(request.headers)
-        
-        # Remove host header to avoid conflicts
-        headers.pop("host", None)
-        
-        # Update Content-Length if body was modified
-        if body is not None:
-            headers["content-length"] = str(len(body))
-        
-        # Log incoming request
-        logger.info(f"Forwarding {request.method} {target_url}")
-        
-        response = await client.request(
-            method=request.method,
-            url=target_url,
-            headers=headers,
-            params=request.query_params,
-            content=body
-        )
-        
-        # Handle streaming responses (like chat completions with stream=True)
-        if response.headers.get("content-type", "").startswith("text/event-stream"):
-            async def stream_response():
-                async for chunk in response.aiter_bytes():
-                    yield chunk
+            # Get request body if present
+            body = None
+            original_body_data = None
+            if request.method in ["POST", "PUT", "PATCH"]:
+                body = await request.body()
+                
+                # Apply compression for chat completions
+                if body and path.endswith("chat/completions") and COMPRESSION_RATIO > 1.0:
+                    try:
+                        body_str = body.decode('utf-8')
+                        body_data = json.loads(body_str)
+                        if "messages" in body_data and isinstance(body_data["messages"], list):
+                            original_body_data = body_data.copy()
+                            compression_logger.info(f"NEW CHAT COMPLETION REQUEST - Timestamp: {datetime.now().isoformat()}")
+                            compression_logger.info(f"Target URL: {target_url}")
+                            compression_logger.info(f"Compression ratio: {COMPRESSION_RATIO}")
+                            compression_logger.info("")
+                            
+                            body_data["messages"] = compress_chat_messages(body_data["messages"], COMPRESSION_RATIO)
+                            new_body_str = json.dumps(body_data, ensure_ascii=False)
+                            body = new_body_str.encode('utf-8')
+                            logger.info(f"Applied compression ratio {COMPRESSION_RATIO} to chat completion request")
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"Failed to parse JSON for compression: {e}")
+                    except UnicodeDecodeError as e:
+                        logger.warning(f"Failed to decode body for compression: {e}")
+                    except Exception as e:
+                        logger.warning(f"Failed to apply compression: {e}")
+                        import traceback
+                        logger.warning(f"Compression error traceback: {traceback.format_exc()}")
             
-            return StreamingResponse(
-                stream_response(),
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                media_type="text/event-stream"
+            # Prepare headers
+            headers = dict(request.headers)
+            
+            # Remove host header to avoid conflicts
+            headers.pop("host", None)
+            
+            # Update Content-Length if body was modified
+            if body is not None:
+                headers["content-length"] = str(len(body))
+            
+            # Log incoming request
+            logger.info(f"Forwarding {request.method} {target_url}")
+            
+            response = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                params=request.query_params,
+                content=body
             )
+            
+            # Handle streaming responses (like chat completions with stream=True)
+            if response.headers.get("content-type", "").startswith("text/event-stream"):
+                async def stream_response():
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+                
+                return StreamingResponse(
+                    stream_response(),
+                    status_code=response.status_code,
+                    headers=dict(response.headers),
+                    media_type="text/event-stream"
+                )
+            
+            # Handle regular responses
+            return Response(
+                content=response.content,
+                status_code=response.status_code,
+                headers=dict(response.headers)
+            )
+            
+        except httpx.RequestError as e:
+            logger.error(f"Request error: {e}")
+            raise HTTPException(status_code=502, detail="Bad Gateway - Failed to connect to OpenAI API")
         
-        # Handle regular responses
-        return Response(
-            content=response.content,
-            status_code=response.status_code,
-            headers=dict(response.headers)
-        )
-        
-    except httpx.RequestError as e:
-        logger.error(f"Request error: {e}")
-        raise HTTPException(status_code=502, detail="Bad Gateway - Failed to connect to OpenAI API")
-    
-    except Exception as e:
-        logger.error(f"Unexpected error: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error")
 
 # Google Cloud Functions entry point
 import asyncio
