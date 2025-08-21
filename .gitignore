@@ -3,3 +3,4 @@
 /__pycache__
 /proxy_requests.log
 compression.log
+core
