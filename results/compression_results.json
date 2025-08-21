@@ -1,0 +1,100 @@
+[
+  {
+    "tokens_to_keep_ratio": 1.0,
+    "primary_metric": 0.14894757275885945,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.14894757275885945,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.7077801577205367,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.9,
+    "primary_metric": 0.039394995445536624,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.039394995445536624,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.3884985417588721,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.8,
+    "primary_metric": 0.005530321449856613,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.005530321449856613,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.24206211689950302,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.7,
+    "primary_metric": 0.005530321449856613,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.005530321449856613,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.19444050519119643,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.6,
+    "primary_metric": 0.005530321449856613,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.005530321449856613,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.09404852635209086,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.5,
+    "primary_metric": 0.005530321449856613,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.005530321449856613,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.052742937344971465,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.4,
+    "primary_metric": 0.005530321449856613,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "tinyGSM8k": {
+        "alias": "tinyGSM8k",
+        "exact_match,strict-match": 0.005530321449856613,
+        "exact_match_stderr,strict-match": "N/A",
+        "exact_match,flexible-extract": 0.020887448150491084,
+        "exact_match_stderr,flexible-extract": "N/A"
+      }
+    }
+  }
+]
