@@ -18,7 +18,7 @@ See [DEPLOYMENT_SETUP.md](DEPLOYMENT_SETUP.md) for detailed setup instructions.
 **Quick steps:**
 1. Fork this repository
 2. Set up Google Cloud project and service account
-3. Add secrets to GitHub repository (`GCP_PROJECT_ID`, `GCP_SA_KEY`) and optional variable (`COMPRESSION_RATIO`)
+3. Add secrets to GitHub repository (`GCP_PROJECT_ID`, `GCP_SA_KEY`) and optional variables (`COMPRESSION_RATIO`, `TOKENS_TO_KEEP_RATIO`)
 4. Push to main branch - automatic deployment via GitHub Actions
 
 ## Local Development
@@ -54,13 +54,16 @@ curl http://localhost:8080/health
 ### With Compression
 
 ```bash
-# Run with 2x compression (removes ~50% of tokens from user messages)
+# Option 1: Use COMPRESSION_RATIO (> 1.0)
+# 2.0 removes ~50% of tokens; 3.0 removes ~67%
 export COMPRESSION_RATIO=2.0
 export OPENAI_API_KEY="your-api-key-here"
 uv run python proxy.py
 
-# Or with 3x compression (removes ~67% of tokens)
-export COMPRESSION_RATIO=3.0
+# Option 2: Use TOKENS_TO_KEEP_RATIO (< 1.0)
+# 0.7 keeps ~70% of tokens; 0.5 keeps ~50%
+unset COMPRESSION_RATIO
+export TOKENS_TO_KEEP_RATIO=0.7
 uv run python proxy.py
 ```
 
@@ -120,6 +123,7 @@ docker run --rm -p 3000:8080 \
   - `2.0`: Removes ~50% of tokens from user messages
   - `3.0`: Removes ~67% of tokens from user messages
   - `4.0`: Removes ~75% of tokens from user messages
+- `TOKENS_TO_KEEP_RATIO`: Alternative to `COMPRESSION_RATIO`. Value in (0, 1]; if set and < 1.0, overrides `COMPRESSION_RATIO` and keeps this fraction of tokens (e.g., 0.7 keeps ~70%). Default unset.
 - `PORT`: Port to run on (default: 8000 locally, 8080 for Cloud Run)
 - `HOST`: Host to bind to (default: 0.0.0.0)
 
@@ -129,6 +133,7 @@ The compression algorithm:
 1. Only affects user messages in chat completions
 2. Uses random token removal to maintain semantic diversity
 3. Preserves message structure and role assignments
+6. Honors `TOKENS_TO_KEEP_RATIO` if provided; otherwise uses `COMPRESSION_RATIO`
 4. Logs detailed before/after comparisons
 5. Falls back gracefully if compression fails
 
