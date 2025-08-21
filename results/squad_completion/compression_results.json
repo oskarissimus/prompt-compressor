@@ -1,0 +1,122 @@
+[
+  {
+    "tokens_to_keep_ratio": 1.0,
+    "primary_metric": 0.6333333333333333,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.6333333333333333,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.9,
+    "primary_metric": 0.6666666666666666,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.6666666666666666,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.8,
+    "primary_metric": 0.7333333333333333,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.7333333333333333,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.7,
+    "primary_metric": 0.5333333333333333,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.5333333333333333,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.6,
+    "primary_metric": 0.36666666666666664,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.36666666666666664,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.5,
+    "primary_metric": 0.43333333333333335,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.43333333333333335,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.4,
+    "primary_metric": 0.26666666666666666,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.26666666666666666,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.3,
+    "primary_metric": 0.16666666666666666,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.16666666666666666,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.2,
+    "primary_metric": 0.1,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.1,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.1,
+    "primary_metric": 0.1,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "squad_completion": {
+        "alias": "squad_completion",
+        "contains,none": 0.1,
+        "contains_stderr,none": "N/A"
+      }
+    }
+  }
+]
