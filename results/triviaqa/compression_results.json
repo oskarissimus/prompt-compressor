@@ -1,0 +1,122 @@
+[
+  {
+    "tokens_to_keep_ratio": 1.0,
+    "primary_metric": 0.18,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.18,
+        "exact_match_stderr,remove_whitespace": 0.054883922035138706
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.9,
+    "primary_metric": 0.18,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.18,
+        "exact_match_stderr,remove_whitespace": 0.054883922035138706
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.8,
+    "primary_metric": 0.08,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.08,
+        "exact_match_stderr,remove_whitespace": 0.03875617133214439
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.7,
+    "primary_metric": 0.14,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.14,
+        "exact_match_stderr,remove_whitespace": 0.0495695759225642
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.6,
+    "primary_metric": 0.08,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.08,
+        "exact_match_stderr,remove_whitespace": 0.03875617133214439
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.5,
+    "primary_metric": 0.04,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.04,
+        "exact_match_stderr,remove_whitespace": 0.027994168488950602
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.4,
+    "primary_metric": 0.02,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.02,
+        "exact_match_stderr,remove_whitespace": 0.02
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.3,
+    "primary_metric": 0.0,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.0,
+        "exact_match_stderr,remove_whitespace": 0.0
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.2,
+    "primary_metric": 0.0,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.0,
+        "exact_match_stderr,remove_whitespace": 0.0
+      }
+    }
+  },
+  {
+    "tokens_to_keep_ratio": 0.1,
+    "primary_metric": 0.0,
+    "primary_metric_name": "avg_primary_metric",
+    "task_metrics": {
+      "triviaqa": {
+        "alias": "triviaqa",
+        "exact_match,remove_whitespace": 0.0,
+        "exact_match_stderr,remove_whitespace": 0.0
+      }
+    }
+  }
+]
