@@ -9,6 +9,7 @@ accuracy vs compression.
 import os
 import json
 import math
+import argparse
 from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
@@ -110,6 +111,7 @@ def run_benchmark(
     task_list: Optional[List[str]] = None,
     output_dir: str = "/workspace/results",
     ratios: Optional[List[float]] = None,
+    limit: Optional[int] = None,
 ) -> str:
     os.makedirs(output_dir, exist_ok=True)
 
@@ -145,6 +147,7 @@ def run_benchmark(
             random_seed=0,
             numpy_random_seed=1234,
             torch_random_seed=1234,
+            limit=limit,
         )
 
         # Extract a primary accuracy-like metric per task
@@ -199,7 +202,9 @@ def run_benchmark(
     plt.gca().invert_xaxis()  # higher compression to the right (lower keep ratio)
     plt.xlabel("Tokens to Keep Ratio")
     plt.ylabel(record.get("primary_metric_name") or "Primary Metric")
-    plt.title("Accuracy vs Compression (GPT-3.5 chat)")
+    plt.title(
+        f"Accuracy vs Compression (GPT-3.5 chat)\nTasks: {', '.join(task_list)}"
+    )
     plt.grid(True, alpha=0.3)
     plot_path = os.path.join(output_dir, "accuracy_vs_compression.png")
     plt.tight_layout()
@@ -215,6 +220,32 @@ if __name__ == "__main__":
             "OPENAI_API_KEY not found in environment. Please set it via user secrets."
         )
 
-    out_image = run_benchmark()
+    parser = argparse.ArgumentParser(description="Compression benchmark harness")
+    parser.add_argument(
+        "--tasks",
+        type=str,
+        default="tinyGSM8k",
+        help="Comma-separated list of task names (e.g., 'triviaqa' or 'tinyGSM8k')",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit examples per task (int). Useful for quick runs",
+    )
+    parser.add_argument(
+        "--output-subdir",
+        type=str,
+        default=None,
+        help="Subdirectory under /workspace/results to store outputs",
+    )
+    args = parser.parse_args()
+
+    tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
+    out_dir = "/workspace/results"
+    if args.output_subdir:
+        out_dir = os.path.join(out_dir, args.output_subdir)
+
+    out_image = run_benchmark(task_list=tasks, output_dir=out_dir, limit=args.limit)
     print(f"Saved plot to: {out_image}")
 
