@@ -1,28 +1,28 @@
 [
   {
     "tokens_to_keep_ratio": 1.0,
-    "primary_metric": 0.14894757275885945,
+    "primary_metric": 0.10773095147213167,
     "primary_metric_name": "avg_primary_metric",
     "task_metrics": {
       "tinyGSM8k": {
         "alias": "tinyGSM8k",
-        "exact_match,strict-match": 0.14894757275885945,
+        "exact_match,strict-match": 0.10773095147213167,
         "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.7077801577205367,
+        "exact_match,flexible-extract": 0.7231567120406052,
         "exact_match_stderr,flexible-extract": "N/A"
       }
     }
   },
   {
     "tokens_to_keep_ratio": 0.9,
-    "primary_metric": 0.039394995445536624,
+    "primary_metric": 0.05118142266555778,
     "primary_metric_name": "avg_primary_metric",
     "task_metrics": {
       "tinyGSM8k": {
         "alias": "tinyGSM8k",
-        "exact_match,strict-match": 0.039394995445536624,
+        "exact_match,strict-match": 0.05118142266555778,
         "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.3884985417588721,
+        "exact_match,flexible-extract": 0.4467622536781205,
         "exact_match_stderr,flexible-extract": "N/A"
       }
     }
@@ -36,7 +36,7 @@
         "alias": "tinyGSM8k",
         "exact_match,strict-match": 0.005530321449856613,
         "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.24206211689950302,
+        "exact_match,flexible-extract": 0.21479961856499763,
         "exact_match_stderr,flexible-extract": "N/A"
       }
     }
@@ -50,7 +50,7 @@
         "alias": "tinyGSM8k",
         "exact_match,strict-match": 0.005530321449856613,
         "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.19444050519119643,
+        "exact_match,flexible-extract": 0.16685540947026326,
         "exact_match_stderr,flexible-extract": "N/A"
       }
     }
@@ -64,7 +64,7 @@
         "alias": "tinyGSM8k",
         "exact_match,strict-match": 0.005530321449856613,
         "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.09404852635209086,
+        "exact_match,flexible-extract": 0.10132109158603378,
         "exact_match_stderr,flexible-extract": "N/A"
       }
     }
@@ -78,21 +78,7 @@
         "alias": "tinyGSM8k",
         "exact_match,strict-match": 0.005530321449856613,
         "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.052742937344971465,
-        "exact_match_stderr,flexible-extract": "N/A"
-      }
-    }
-  },
-  {
-    "tokens_to_keep_ratio": 0.4,
-    "primary_metric": 0.005530321449856613,
-    "primary_metric_name": "avg_primary_metric",
-    "task_metrics": {
-      "tinyGSM8k": {
-        "alias": "tinyGSM8k",
-        "exact_match,strict-match": 0.005530321449856613,
-        "exact_match_stderr,strict-match": "N/A",
-        "exact_match,flexible-extract": 0.020887448150491084,
+        "exact_match,flexible-extract": 0.06306308939813615,
         "exact_match_stderr,flexible-extract": "N/A"
       }
     }
