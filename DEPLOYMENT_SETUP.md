@@ -104,6 +104,10 @@ Go to your GitHub repository → Settings → Secrets and variables → Actions 
   - Example: "2.0" removes ~50% of tokens, "3.0" removes ~67% of tokens
   - **Note**: This is set as a repository variable (not a secret) since it's not sensitive information
 
+- **`TOKENS_TO_KEEP_RATIO`**: Alternative to `COMPRESSION_RATIO`. If set to a value < 1.0, it keeps this fraction of tokens (e.g., `0.7` keeps ~70%) and overrides `COMPRESSION_RATIO`.
+  - Default: unset
+  - Example: `0.6` keeps ~60% of tokens
+
 ### 2. Customize Deployment Settings
 
 You can modify the deployment settings in `.github/workflows/deploy.yml`:
@@ -126,6 +130,9 @@ gcloud builds submit --config cloudbuild.yaml
 
 # Deploy with custom compression ratio
 gcloud builds submit --config cloudbuild.yaml --substitutions _COMPRESSION_RATIO=2.0
+
+# Or deploy using tokens-to-keep (overrides compression ratio)
+gcloud builds submit --config cloudbuild.yaml --substitutions _TOKENS_TO_KEEP_RATIO=0.7
 ```
 
 The Cloud Build configuration uses substitution variables, so you can override the compression ratio at build time without modifying the file.
@@ -141,6 +148,8 @@ docker build -t openai-proxy .
 
 # Run locally
 docker run -p 8080:8080 -e COMPRESSION_RATIO=1.0 openai-proxy
+# Or
+docker run -p 8080:8080 -e TOKENS_TO_KEEP_RATIO=0.7 openai-proxy
 
 # Test health endpoint
 curl http://localhost:8080/health

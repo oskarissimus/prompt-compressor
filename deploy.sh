@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Manual deployment script for Google Cloud Run
-# Usage: ./deploy.sh [PROJECT_ID] [REGION] [COMPRESSION_RATIO]
+# Usage: ./deploy.sh [PROJECT_ID] [REGION] [COMPRESSION_RATIO] [TOKENS_TO_KEEP_RATIO]
 
 set -e
 
@@ -11,12 +11,14 @@ REGION=${2:-us-central1}
 SERVICE_NAME="openai-proxy"
 IMAGE_NAME="gcr.io/$PROJECT_ID/$SERVICE_NAME"
 COMPRESSION_RATIO=${3:-1.0}
+TOKENS_TO_KEEP_RATIO=${4:-1.0}
 
 echo "🚀 Deploying OpenAI Proxy to Google Cloud Run"
 echo "Project: $PROJECT_ID"
 echo "Region: $REGION"
 echo "Service: $SERVICE_NAME"
 echo "Compression Ratio: $COMPRESSION_RATIO"
+echo "Tokens To Keep Ratio: $TOKENS_TO_KEEP_RATIO"
 echo ""
 
 # Check if gcloud is installed and authenticated
@@ -69,7 +71,7 @@ gcloud run deploy $SERVICE_NAME \
     --max-instances=10 \
     --min-instances=0 \
     --concurrency=100 \
-    --set-env-vars="COMPRESSION_RATIO=$COMPRESSION_RATIO" \
+    --set-env-vars="COMPRESSION_RATIO=$COMPRESSION_RATIO,TOKENS_TO_KEEP_RATIO=$TOKENS_TO_KEEP_RATIO" \
     --port=8080
 
 # Get service URL

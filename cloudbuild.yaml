@@ -36,10 +36,11 @@ steps:
       - '--port'
       - '8080'
       - '--set-env-vars'
-      - 'COMPRESSION_RATIO=${_COMPRESSION_RATIO}'
+      - 'COMPRESSION_RATIO=${_COMPRESSION_RATIO},TOKENS_TO_KEEP_RATIO=${_TOKENS_TO_KEEP_RATIO}'
 
 images:
   - 'gcr.io/$PROJECT_ID/openai-proxy:$COMMIT_SHA'
 
 substitutions:
-  _COMPRESSION_RATIO: '1.0' 
+  _COMPRESSION_RATIO: '1.0'
+  _TOKENS_TO_KEEP_RATIO: '1.0' 

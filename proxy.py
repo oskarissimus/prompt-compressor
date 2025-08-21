@@ -53,13 +53,21 @@ OPENAI_BASE_URL = "https://api.openai.com/v1"
 
 # Compression configuration
 COMPRESSION_RATIO = float(os.getenv("COMPRESSION_RATIO", "1.0"))  # Default no compression
+_TOKENS_TO_KEEP_RATIO_ENV = os.getenv("TOKENS_TO_KEEP_RATIO", None)
+TOKENS_TO_KEEP_RATIO = None if _TOKENS_TO_KEEP_RATIO_ENV in (None, "") else float(_TOKENS_TO_KEEP_RATIO_ENV)
 
-def compress_text(text: str, compression_ratio: float) -> str:
+def compress_text(text: str, compression_ratio: float, tokens_to_keep_ratio: Optional[float] = None) -> str:
     """
     Simple token-based compression algorithm.
-    Removes N random tokens where N = token_count * (1 - 1/compression_ratio)
+    Removes N random tokens where:
+      - If tokens_to_keep_ratio is provided and < 1.0: N = token_count * (1 - tokens_to_keep_ratio)
+      - Else if compression_ratio > 1.0: N = token_count * (1 - 1/compression_ratio)
     """
-    if compression_ratio <= 1.0:
+    # Determine whether to compress
+    if tokens_to_keep_ratio is not None:
+        if tokens_to_keep_ratio >= 1.0:
+            return text
+    elif compression_ratio <= 1.0:
         return text  # No compression needed
     
     try:
@@ -74,7 +82,10 @@ def compress_text(text: str, compression_ratio: float) -> str:
             return text
         
         # Calculate how many tokens to remove
-        tokens_to_remove = int(token_count * (1 - 1/compression_ratio))
+        if tokens_to_keep_ratio is not None and tokens_to_keep_ratio < 1.0:
+            tokens_to_remove = int(token_count * (1 - tokens_to_keep_ratio))
+        else:
+            tokens_to_remove = int(token_count * (1 - 1/compression_ratio))
         
         if tokens_to_remove <= 0:
             return text
@@ -97,7 +108,7 @@ def compress_text(text: str, compression_ratio: float) -> str:
         
         # Log compression details to separate file
         compression_logger.info("=" * 80)
-        compression_logger.info(f"COMPRESSION APPLIED - Ratio: {compression_ratio}")
+        compression_logger.info(f"COMPRESSION APPLIED - Ratio: {compression_ratio}, TokensToKeepRatio: {tokens_to_keep_ratio}")
         compression_logger.info(f"Original tokens: {token_count}")
         compression_logger.info(f"Compressed tokens: {len(compressed_tokens)}")
         compression_logger.info(f"Removed tokens: {tokens_to_remove}")
@@ -115,11 +126,14 @@ def compress_text(text: str, compression_ratio: float) -> str:
         logger.warning(f"Compression failed: {e}, returning original text")
         return text
 
-def compress_chat_messages(messages: list, compression_ratio: float) -> list:
+def compress_chat_messages(messages: list, compression_ratio: float, tokens_to_keep_ratio: Optional[float] = None) -> list:
     """
     Apply compression to chat messages, focusing on user messages
     """
-    if compression_ratio <= 1.0:
+    if tokens_to_keep_ratio is not None:
+        if tokens_to_keep_ratio >= 1.0:
+            return messages
+    elif compression_ratio <= 1.0:
         return messages
     
     compressed_messages = []
@@ -131,7 +145,7 @@ def compress_chat_messages(messages: list, compression_ratio: float) -> list:
             if isinstance(content, str):
                 user_message_count += 1
                 compression_logger.info(f"COMPRESSING USER MESSAGE #{user_message_count} (position {i})")
-                compressed_content = compress_text(content, compression_ratio)
+                compressed_content = compress_text(content, compression_ratio, tokens_to_keep_ratio)
                 compressed_message = message.copy()
                 compressed_message["content"] = compressed_content
                 compressed_messages.append(compressed_message)
@@ -187,7 +201,12 @@ async def proxy_request(request: Request, path: str):
             body = await request.body()
             
             # Apply compression for chat completions
-            if body and path.endswith("chat/completions") and COMPRESSION_RATIO > 1.0:
+            should_compress = False
+            if TOKENS_TO_KEEP_RATIO is not None:
+                should_compress = TOKENS_TO_KEEP_RATIO < 1.0
+            else:
+                should_compress = COMPRESSION_RATIO > 1.0
+            if body and path.endswith("chat/completions") and should_compress:
                 try:
                     body_str = body.decode('utf-8')
                     body_data = json.loads(body_str)
@@ -196,12 +215,16 @@ async def proxy_request(request: Request, path: str):
                         compression_logger.info(f"NEW CHAT COMPLETION REQUEST - Timestamp: {datetime.now().isoformat()}")
                         compression_logger.info(f"Target URL: {target_url}")
                         compression_logger.info(f"Compression ratio: {COMPRESSION_RATIO}")
+                        compression_logger.info(f"Tokens to keep ratio: {TOKENS_TO_KEEP_RATIO}")
                         compression_logger.info("")
                         
-                        body_data["messages"] = compress_chat_messages(body_data["messages"], COMPRESSION_RATIO)
+                        body_data["messages"] = compress_chat_messages(body_data["messages"], COMPRESSION_RATIO, TOKENS_TO_KEEP_RATIO)
                         new_body_str = json.dumps(body_data, ensure_ascii=False)
                         body = new_body_str.encode('utf-8')
-                        logger.info(f"Applied compression ratio {COMPRESSION_RATIO} to chat completion request")
+                        if TOKENS_TO_KEEP_RATIO is not None:
+                            logger.info(f"Applied tokens_to_keep_ratio {TOKENS_TO_KEEP_RATIO} to chat completion request")
+                        else:
+                            logger.info(f"Applied compression ratio {COMPRESSION_RATIO} to chat completion request")
                 except json.JSONDecodeError as e:
                     logger.warning(f"Failed to parse JSON for compression: {e}")
                 except UnicodeDecodeError as e:
@@ -334,7 +357,9 @@ if __name__ == "__main__":
     
     logger.info(f"Starting OpenAI proxy server on {host}:{port}")
     logger.info(f"Forwarding requests to {OPENAI_BASE_URL}")
-    if COMPRESSION_RATIO > 1.0:
+    if TOKENS_TO_KEEP_RATIO is not None and TOKENS_TO_KEEP_RATIO < 1.0:
+        logger.info(f"Compression enabled with tokens_to_keep_ratio {TOKENS_TO_KEEP_RATIO} (removes ~{100*(1-TOKENS_TO_KEEP_RATIO):.1f}% of tokens)")
+    elif COMPRESSION_RATIO > 1.0:
         logger.info(f"Compression enabled with ratio {COMPRESSION_RATIO} (removes ~{100*(1-1/COMPRESSION_RATIO):.1f}% of tokens)")
     else:
         logger.info("Compression disabled")
